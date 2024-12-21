@@ -13,11 +13,9 @@ https://docs.djangoproject.com/en/5.1/ref/settings/
 from pathlib import Path
 from dotenv import load_dotenv
 import os
-from urllib.parse import urlparse
 
 load_dotenv()
-DATABASE_URL = os.getenv('DATABASE_URL')
-result = urlparse(DATABASE_URL)
+
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -83,13 +81,16 @@ WSGI_APPLICATION = 'capy_backend.wsgi.application'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql',
-        'NAME': result.path[1:],
-        'USER': result.username,
-        'PASSWORD': result.password,
-        'HOST': result.hostname,
-        'PORT': result.port,
+        'NAME': os.getenv("DB_NAME"),
+        'USER': os.getenv("DB_USER"),
+        'PASSWORD': os.getenv("DB_PASSWORD"),
+        'HOST': os.getenv("DB_HOST"),
+        'PORT': os.getenv("DB_PORT"),
     }
 }
+
+# Custom user model
+AUTH_USER_MODEL = 'users.CustomUser'
 
 
 # Password validation
