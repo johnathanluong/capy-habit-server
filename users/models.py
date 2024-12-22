@@ -8,5 +8,6 @@ class CustomUser(AbstractUser):
     completed_habits = models.IntegerField(default=0)
     habit_streak = models.IntegerField(default=0)
     last_login = models.DateTimeField(auto_now=True)
+    points = models.PositiveIntegerField(default=0)
     
     

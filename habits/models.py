@@ -1,5 +1,4 @@
 from django.db import models
-from django.contrib.auth.models import User
 from django.conf import settings
 from datetime import timedelta
 
@@ -35,7 +34,7 @@ class Habit(models.Model):
     
 class HabitCompletion(models.Model):
     habit = models.ForeignKey(Habit, on_delete=models.CASCADE)
-    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
     completed_on = models.DateField()  # Date the habit was completed
     status = models.CharField(max_length=10, choices=status_choices, default='missed')
     notes = models.TextField(blank=True)
