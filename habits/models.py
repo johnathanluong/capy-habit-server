@@ -1,95 +1,211 @@
 from django.db import models
 from django.conf import settings
-from datetime import timedelta
+from django.utils import timezone
+from datetime import timedelta, datetime
+from calendar import monthrange
+import pytz
 
-frequency_choices = [
-    ('daily', 'Daily'),
-    ('weekly', 'Weekly'),
-    ('monthly', 'Monthly')
+FREQUENCY_CHOICES = [
+    ('daily', 'Daily'),    # Habit should be completed daily
+    ('weekly', 'Weekly'),  # Habit should be completed weekly
+    ('monthly', 'Monthly'), # Habit should be completed monthly
 ]
 
-status_choices = [
-    ('completed', 'Completed'),
-    ('missed', 'Missed')
+STATUS_CHOICES = [
+    ('completed', 'Completed'),  # Habit was completed successfully
+    ('missed', 'Missed'),       # Habit was not completed in time
 ]
 
-# Create your models here.
 class Habit(models.Model):
-    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
-    name = models.CharField(max_length=255)
-    description = models.TextField()
-    category = models.CharField(max_length=50, blank=True)
+    # Model for each habit
     
-    frequency = models.PositiveIntegerField(default=1) # How frequent a user wants that habit done per frequency_type
-    frequency_type = models.CharField(max_length=8, 
-                                      choices=frequency_choices,
-                                      default='daily')
+    # Main fields
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        help_text="The user who owns this habit"
+    )
+    name = models.CharField(
+        max_length=255,
+        help_text="The name of the habit"
+    )
+    description = models.TextField(
+        help_text="Detailed description of the habit"
+    )
+    category = models.CharField(
+        max_length=50,
+        blank=True,
+        help_text="Optional category for organizing habits"
+    )
     
-    grace_period = models.PositiveIntegerField(default=0)
-    streak = models.IntegerField(default=0)
+    # Frequency settings
+    frequency = models.PositiveIntegerField(
+        default=1,
+        help_text="How many times the habit should be completed per frequency_type"
+    )
+    frequency_type = models.CharField(
+        max_length=8,
+        choices=FREQUENCY_CHOICES,
+        default='daily',
+        help_text="The time period over which the frequency is measured"
+    )
     
+    # Tracking fields
+    grace_period = models.PositiveIntegerField(
+        default=0,
+        help_text="Number of days after the period ends where completion still counts"
+    )
+    streak = models.IntegerField(
+        default=0,
+        help_text="Current streak of successful completions"
+    )
+    
+    def get_user_timezone(self):
+        """Get the pytz timezone object for the user."""
+        return pytz.timezone(self.user.timezone)
+
+    def get_user_local_time(self, dt=None):
+        """Convert UTC datetime to user's local time."""
+        if dt is None:
+            dt = timezone.now()
+        return dt.astimezone(self.get_user_timezone())
     
     def __str__(self):
         return self.name
-    
+
 class HabitCompletion(models.Model):
-    habit = models.ForeignKey(Habit, on_delete=models.CASCADE)
-    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
-    completed_on = models.DateField()  # Date the habit was completed
-    status = models.CharField(max_length=10, choices=status_choices, default='missed')
-    notes = models.TextField(blank=True)
+    # Model of a single habit completion
     
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        help_text="The user who completed the habit"
+    )
+    habit = models.ForeignKey(
+        Habit,
+        on_delete=models.CASCADE,
+        help_text="The habit this completion relates to"
+    )
+    notes = models.TextField(
+        blank=True,
+        help_text="Optional notes about completion"
+    )
+    completed_at = models.DateTimeField(
+        null=True,
+        blank=True,
+        help_text="The UTC datetime when the habit was completed"
+    )
+    status = models.CharField(
+        max_length=10,
+        choices=STATUS_CHOICES,
+        default='missed',
+        help_text="Whether the habit was completed or missed"
+    )
+    
+    # Optimizes database queries for habit, completed_at, and status
+    class Meta:
+        indexes = [
+            models.Index(fields=['habit', 'completed_at', 'status']),
+        ]
+    
+    @property
+    # Get the completion datetime in user's timezone.
+    def completed_on_local(self):
+        return self.completed_at.astimezone(self.habit.get_user_timezone())
+    
+    # Calculate period range in user's local timezone.
     def get_period_range(self):
-        habit = self.habit
+        local_dt = self.completed_on_local
+        user_tz = self.habit.get_user_timezone()
         
-        if habit.frequency_type == 'daily':
-            return self.completed_on, self.completed_on
-        elif habit.frequency_type == 'weekly':
-            start_date = self.completed_on - timedelta(days=self.completed_on.weekday())
-            end_date = start_date + timedelta(days=6)
-            return start_date, end_date
-        elif habit.frequency_type == 'monthly':
-            start_date = self.completed_on.replace(day=1)
-            end_date = (start_date.replace(month=start_date.month + 1) - timedelta(days=1))
-            return start_date, end_date
+        if self.habit.frequency_type == 'daily':
+            # Start and end of day in user's timezone
+            start = datetime.combine(local_dt.date(), datetime.min.time())
+            end = datetime.combine(local_dt.date(), datetime.max.time())
+            
+        elif self.habit.frequency_type == 'weekly':
+            # Start of week (Monday) and end of week (Sunday) in user's timezone
+            start = datetime.combine(
+                local_dt.date() - timedelta(days=local_dt.weekday()),
+                datetime.min.time()
+            )
+            end = datetime.combine(
+                start.date() + timedelta(days=6),
+                datetime.max.time()
+            )
+            
+        elif self.habit.frequency_type == 'monthly':
+            # Start and end of month in user's timezone
+            start = datetime.combine(
+                local_dt.replace(day=1).date(),
+                datetime.min.time()
+            )
+            _, last_day = monthrange(local_dt.year, local_dt.month)
+            end = datetime.combine(
+                local_dt.replace(day=last_day).date(),
+                datetime.max.time()
+            )
         
-        return self.completed_on, self.completed_on
+        # Localize to user's timezone and convert to UTC for database queries
+        start = user_tz.localize(start).astimezone(pytz.UTC)
+        end = user_tz.localize(end).astimezone(pytz.UTC)
+        
+        return start, end
     
+    # Count completions in current period using UTC times.
     def get_completed_count_in_period(self):
-        habit = self.habit
         start_date, end_date = self.get_period_range()
-
-        # Get all completions in this period
-        completions = HabitCompletion.objects.filter(
-            habit=habit,
-            completed_on__range=[start_date, end_date],
+        return HabitCompletion.objects.filter(
+            habit=self.habit,
+            completed_at__range=[start_date, end_date],
             status='completed'
-        )
-
-        return completions.count()
+        ).count()
     
+    # Check if completion is within grace period using UTC times.
     def is_within_grace_period(self):
-        habit = self.habit
-        _, period_end = self.get_period_range*()
-        grace_period_end = period_end + timedelta(days=habit.grace_period)
-        
-        return self.completed_on <= grace_period_end
+        _, period_end = self.get_period_range()
+        grace_period_end = period_end + timedelta(days=self.habit.grace_period)
+        return self.completed_at <= grace_period_end
     
+    # Update streak based on local timezone periods.
     def check_streak(self):
-        habit = self.habit
         completed_count = self.get_completed_count_in_period()
-
-        # Reset the streak if the habit frequency is less than the set frequency - grace period
-        if self.status == 'missed' and not self.is_within_grace_period():
-            habit.streak = 0
-            
-        # If completed enough within the period, increment the streak
-        elif completed_count >= habit.frequency:
-            habit.streak += 1
-            
-        habit.save()
-
-    
         
+        if self.status == 'missed' and not self.is_within_grace_period():
+            self.habit.streak = 0
+        elif completed_count >= self.habit.frequency:
+            self.habit.streak += 1
+        
+        self.habit.save()
+    
+    # Save completion and update streak.
+    def save(self, *args, **kwargs):
+        if not self.completed_at:
+            self.completed_at = timezone.now()
+            
+        super().save(*args, **kwargs)
+        self.check_streak()
+    
     def __str__(self):
-        return f"{self.habit.name} completed on {self.completed_on}"
+        local_time = self.completed_on_local
+        return f"{self.habit.name} completed on {local_time.strftime('%Y-%m-%d %H:%M %Z')}"
+
+# Function to create habit completions easier
+def complete_habit(habit: Habit, completed_at=None, notes=""):
+    if completed_at is None:
+        completed_at = timezone.now()
+    
+    # make sure datetime is timezone-aware
+    if timezone.is_naive(completed_at):
+        completed_at = habit.get_user_timezone().localize(completed_at)
+    
+    # Convert to UTC for storage
+    utc_completed_at = completed_at.astimezone(pytz.UTC)
+    
+    return HabitCompletion.objects.create(
+        habit=habit,
+        user=habit.user,
+        completed_at=utc_completed_at,
+        status='completed',
+        notes=notes
+    )
