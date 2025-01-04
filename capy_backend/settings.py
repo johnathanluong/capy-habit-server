@@ -42,7 +42,11 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    # Packages
+    'ninja_extra',
+    'ninja_jwt',
     'corsheaders',
+    # Models
     'users',
     'habits'
 ]
@@ -139,3 +143,7 @@ STATIC_URL = 'static/'
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 CORS_ALLOW_ALL_ORIGINS = True
+
+NINJA_JWT = {
+    
+}

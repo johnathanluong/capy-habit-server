@@ -37,6 +37,13 @@ class Habit(models.Model):
         blank=True,
         help_text="Optional category for organizing habits"
     )
+    created = models.DateTimeField(
+        editable=False,
+        default=timezone.now
+    )
+    modified = models.DateTimeField(
+        auto_now=True
+    )
     
     # Frequency settings
     frequency = models.PositiveIntegerField(
