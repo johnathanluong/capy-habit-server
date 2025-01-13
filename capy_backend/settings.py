@@ -150,5 +150,12 @@ CORS_ALLOWED_ORIGINS = [
 
 FRONTEND_URL = "http://localhost:3000"
 
-
-
+# Email for verification token sending
+SECRET_EMAIL_HOST = os.getenv("EMAIL_HOST")
+SECRET_EMAIL_PASS = os.getenv("EMAIL_PASSWORD")
+EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+EMAIL_HOST = 'smtp.gmail.com'
+EMAIL_PORT = 587
+EMAIL_USE_TLS = True
+EMAIL_HOST_USER = SECRET_EMAIL_HOST
+EMAIL_HOST_PASSWORD = SECRET_EMAIL_PASS
