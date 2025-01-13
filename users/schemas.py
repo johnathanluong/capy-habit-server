@@ -3,7 +3,6 @@ from pydantic import EmailStr
 
 class UserCreateSchema(Schema):
     # Create a user
-    
     username: str
     password: str
     email: EmailStr

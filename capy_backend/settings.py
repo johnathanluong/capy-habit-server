@@ -32,7 +32,6 @@ DEBUG = True
 
 ALLOWED_HOSTS = ["capy-habit-server-production.up.railway.app", "localhost", "127.0.0.1"]
 
-
 # Application definition
 
 INSTALLED_APPS = [
@@ -142,8 +141,14 @@ STATIC_URL = 'static/'
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
-CORS_ALLOW_ALL_ORIGINS = True
+# Handles CORS issues
+CORS_ALLOWED_ORIGINS = [
+    "http://127.0.0.1:3000",
+    "http://localhost:3000",
+    "https://capy-habit.up.railway.app:8080"
+]
 
-NINJA_JWT = {
-    
-}
+FRONTEND_URL = "http://localhost:3000"
+
+
+

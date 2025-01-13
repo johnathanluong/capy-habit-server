@@ -15,12 +15,8 @@ class UserSchema(Schema):
     username: str
     is_authenticated: bool
     email: Optional[str] = None
-
-@api.get("/hello")
-def hello(request):
-    print(request)
-    return "Hello World"
+    display_name: str
 
 @api.get("/me", response=UserSchema, auth=JWTAuth())
-def me(request):
+def get_user_details(request):
     return request.user

@@ -3,6 +3,7 @@ from django.contrib.auth.models import AbstractUser
 
 class CustomUser(AbstractUser):
     # Extention of the default user model
+    email = models.EmailField(unique=True)
     display_name = models.CharField(
         max_length=100,
         default=''
