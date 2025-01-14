@@ -1,14 +1,16 @@
 from ninja import Schema
 from pydantic import EmailStr
 
-class UserCreateSchema(Schema):
-    # Create a user
-    username: str
+class LoginSchema(Schema):
+    identifier: str
     password: str
-    email: EmailStr
     
-    
-class UserDetailSchema(Schema):
-    # Get user data
+class RegisterSchema(Schema):
     username: str
-    email: EmailStr
+    email: str
+    password: str
+    confirmPassword: str
+    
+class VerifySchema(Schema):
+    email: str
+    token: str

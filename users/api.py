@@ -7,17 +7,12 @@ from django.contrib.auth import authenticate
 from django.db.models import Q
 from ninja_jwt.tokens import RefreshToken
 from ninja.errors import HttpError
-import random
 import secrets
+
+from .schemas import LoginSchema, RegisterSchema, VerifySchema
 
 router = Router()
 User = get_user_model()
-
-class RegisterSchema(Schema):
-    username: str
-    email: str
-    password: str
-    confirmPassword: str
     
 @router.post('/register')
 def register(request, data: RegisterSchema):
@@ -64,9 +59,7 @@ def register(request, data: RegisterSchema):
     
     return {"message": 'Registration successful, check your email for a verification code.'}
 
-class VerifySchema(Schema):
-    email: str
-    token: str
+
 @router.post("/verify")
 def verify_email(request, data:VerifySchema):
     # Retrieve the token and email from request body
@@ -94,9 +87,7 @@ def verify_email(request, data:VerifySchema):
     except User.DoesNotExist:
         raise HttpError(404, 'User does not exist.')
 
-class LoginSchema(Schema):
-    identifier: str
-    password: str
+
 @router.post("/login")
 def login(request, data:LoginSchema):
     # Query the users table for the username or email

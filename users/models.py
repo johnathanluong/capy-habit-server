@@ -23,7 +23,19 @@ class CustomUser(AbstractUser):
         help_text="The number of points a user has, obtained from completing habits and keeping up streaks")
     level = models.PositiveIntegerField(default=1)
     experience_points = models.PositiveIntegerField(default=0)
+    xp_for_level = models.PositiveIntegerField(default=10)
     
     def __str__(self):
         return f"Username: {self.username}, Display Name: {self.display_name}"
+    
+    def levelUp(self):
+        self.level += 1
+        self.experience_points -= self.xp_for_level
+        self.xp_for_level += 10
+        
+    def checkLevelUp(self):
+        if self.experience_points >= self.xp_for_level:
+            self.levelUp()
+            return True
+        return False
     
