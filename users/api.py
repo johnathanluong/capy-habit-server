@@ -28,7 +28,7 @@ def register(request, data: RegisterSchema):
         raise HttpError(400, 'Email already registered')
     
     # Create the new user
-    newUser = User.objects.create_user(
+    new_user = User.objects.create_user(
         username=data.username,
         password=data.password,
         email=data.email,
@@ -40,7 +40,7 @@ def register(request, data: RegisterSchema):
     # Add the new user to the regular_user group
     try:
         user_group = Group.objects.get(name='regular_user')
-        newUser.groups.add(user_group)
+        new_user.groups.add(user_group)
     except Group.DoesNotExist:
         raise HttpError(400, 'User group does not exist')
     
