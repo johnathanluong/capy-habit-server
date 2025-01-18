@@ -3,9 +3,10 @@ from ninja_jwt.authentication import JWTAuth
 from typing import List
 from django.shortcuts import get_object_or_404
 from ninja.errors import HttpError
+from django.core.validators import ValidationError
 
 from .schemas import HabitDetailSchema, HabitCreateSchema
-from .models import Habit, FREQUENCY_CHOICES
+from .models import Habit, HabitCompletion, FREQUENCY_CHOICES
 
 router = Router()
 
@@ -45,10 +46,24 @@ def modify_habit(request, habit_id: int, payload: HabitCreateSchema):
 
 @router.post("{habit_id}/complete", auth=JWTAuth())
 def complete_habit_entry(request, habit_id: int):
-    habit = get_object_or_404(Habit, id=habit_id, user=request.user)
-    return habit
-
-@router.post("{habit_id}/miss", auth=JWTAuth())
-def miss_habit_entry(request, habit_id: int):
-    habit = get_object_or_404(Habit, id=habit_id, user=request.user)
-    return habit
+    try:
+        habit = get_object_or_404(Habit, id=habit_id, user=request.user)
+        completion = HabitCompletion.objects.create(
+            user=request.user,
+            habit=habit,
+            status='completed'
+        )
+        
+        start, end = habit.current_period_range()
+        completed_count = HabitCompletion.objects.filter(
+            habit=habit,
+            completed_at__range=[start, end],
+            status='completed'
+        ).count()
+        
+        request.user.completeHabit()
+        request.user.save()
+        
+        return {"success": True, "completion_id": completion.id, "progress": completed_count, "required": habit.frequency}
+    except ValidationError as e:
+        raise HttpError(400, str(e))

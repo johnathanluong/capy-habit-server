@@ -3,6 +3,7 @@ from django.conf import settings
 from django.utils import timezone
 from datetime import timedelta, datetime
 from calendar import monthrange
+from django.core.validators import ValidationError
 import pytz
 
 FREQUENCY_CHOICES = [
@@ -68,21 +69,87 @@ class Habit(models.Model):
     )
     
     def get_user_timezone(self):
-        """Get the pytz timezone object for the user."""
         return pytz.timezone(self.user.timezone)
 
+
     def get_user_local_time(self, dt=None):
-        """Convert UTC datetime to user's local time."""
         if dt is None:
             dt = timezone.now()
         return dt.astimezone(self.get_user_timezone())
+    
+    
+    def get_period_completions(self):
+        start, end = self.current_period_range()
+        return HabitCompletion.objects.filter(
+            habit=self,
+            completed_at__range=[start, end],
+            status='completed'
+        ).count()
+    
+    
+    # Get current period range for checking if habit has enough completions
+    def current_period_range(self):
+        local_dt = self.get_user_local_time()
+        user_tz = self.get_user_timezone()
+        
+        if self.frequency_type == 'daily':
+            start = datetime.combine(local_dt.date(), datetime.min.time())
+            end = datetime.combine(local_dt.date(), datetime.max.time())
+        elif self.frequency_type == 'weekly':
+            start = datetime.combine(
+                local_dt.date() - timedelta(days=local_dt.weekday()),
+                datetime.min.time()
+            )
+            end = datetime.combine(
+                start.date() + timedelta(days=6),
+                datetime.max.time()
+            )
+        elif self.frequency_type == 'monthly':
+            start = datetime.combine(
+                local_dt.replace(day=1).date(),
+                datetime.min.time()
+            )
+            _, last_day = monthrange(local_dt.year, local_dt.month)
+            end = datetime.combine(
+                local_dt.replace(day=last_day).date(),
+                datetime.max.time()
+            )
+        
+        # Localize to user timezone before converting to UTC
+        start = user_tz.localize(start).astimezone(pytz.UTC)
+        end = user_tz.localize(end).astimezone(pytz.UTC)
+        return start, end
+    
+    
+    # Checks if habit was completed enough times for their time period
+    def check_period_completion(self):
+        completed_count = self.get_period_completions()
+        
+        if completed_count < self.frequency:
+            HabitCompletion.objects.create(
+                habit=self,
+                user=self.user,
+                status='missed',
+                completed_at=timezone.now()
+            )
+            self.streak = 0
+            self.save()
+            return True
+        return False
+    
+    
+    def increment_streak(self):
+        completed_count = self.get_period_completions()
+        if completed_count >= self.frequency:
+            self.streak += 1
+            self.save()
+    
     
     def __str__(self):
         return self.name
 
 class HabitCompletion(models.Model):
     # Model of a single habit completion
-    
     user = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.CASCADE,
@@ -93,20 +160,15 @@ class HabitCompletion(models.Model):
         on_delete=models.CASCADE,
         help_text="The habit this completion relates to"
     )
-    notes = models.TextField(
-        blank=True,
-        help_text="Optional notes about completion"
-    )
     completed_at = models.DateTimeField(
-        null=True,
         blank=True,
+        null=True,
         help_text="The UTC datetime when the habit was completed"
     )
     status = models.CharField(
         max_length=10,
         choices=STATUS_CHOICES,
-        default='missed',
-        help_text="Whether the habit was completed or missed"
+        default='completed',
     )
     
     # Optimizes database queries for habit, completed_at, and status
@@ -190,29 +252,17 @@ class HabitCompletion(models.Model):
         if not self.completed_at:
             self.completed_at = timezone.now()
             
+        if self.status == 'completed':
+            completed_count = self.habit.get_period_completions()
+            if completed_count >= self.habit.frequency:
+                raise ValidationError("Maximum completions reached for this period")
+            
         super().save(*args, **kwargs)
-        self.check_streak()
+        
+        if self.status == 'completed':
+            self.habit.increment_streak()
     
     def __str__(self):
         local_time = self.completed_on_local
         return f"{self.habit.name} completed on {local_time.strftime('%Y-%m-%d %H:%M %Z')}"
 
-# Function to create habit completions easier
-def complete_habit(habit: Habit, completed_at=None, notes=""):
-    if completed_at is None:
-        completed_at = timezone.now()
-    
-    # make sure datetime is timezone-aware
-    if timezone.is_naive(completed_at):
-        completed_at = habit.get_user_timezone().localize(completed_at)
-    
-    # Convert to UTC for storage
-    utc_completed_at = completed_at.astimezone(pytz.UTC)
-    
-    return HabitCompletion.objects.create(
-        habit=habit,
-        user=habit.user,
-        completed_at=utc_completed_at,
-        status='completed',
-        notes=notes
-    )

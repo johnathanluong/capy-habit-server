@@ -39,3 +39,12 @@ class CustomUser(AbstractUser):
             return True
         return False
     
+    def completeHabit(self):
+        awarded_xp = 5 + (self.level - 1)
+        awarded_points = 10 + (self.level - 1)
+        self.experience_points += awarded_xp
+        self.points += awarded_points
+        self.checkLevelUp()       
+    
+    def get_accessories(self):
+        return self.user_accessories.all()

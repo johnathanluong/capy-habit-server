@@ -47,7 +47,8 @@ INSTALLED_APPS = [
     'corsheaders',
     # Models
     'users',
-    'habits'
+    'habits',
+    'gacha_items'
 ]
 
 MIDDLEWARE = [

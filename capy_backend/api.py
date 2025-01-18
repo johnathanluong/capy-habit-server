@@ -14,9 +14,11 @@ api.add_router("/users/", "users.api.router")
 
 class UserSchema(Schema):
     username: str
-    is_authenticated: bool
-    email: Optional[str] = None
     display_name: str
+    level: int
+    points: int
+    experience_points: int
+    xp_for_level: int
 
 @api.get("/me", response=UserSchema, auth=JWTAuth())
 def get_user_details(request):
