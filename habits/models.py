@@ -68,6 +68,26 @@ class Habit(models.Model):
         help_text="Current streak of successful completions"
     )
     
+    total_completions = models.PositiveIntegerField(default=0)
+    
+    @property
+    def capybara_stack(self):
+        count = self.total_completions
+        large = count // 100
+        count %= 100
+        medium = count // 10
+        small = count % 10
+        
+        return {
+            "large": large,
+            "medium": medium,
+            "small": small
+        }
+        
+    def increment_completion(self):
+        self.total_completions += 1
+        self.save()
+    
     def get_user_timezone(self):
         return pytz.timezone(self.user.timezone)
 
@@ -85,6 +105,7 @@ class Habit(models.Model):
             completed_at__range=[start, end],
             status='completed'
         ).count()
+        
     
     
     # Get current period range for checking if habit has enough completions
@@ -261,6 +282,7 @@ class HabitCompletion(models.Model):
         
         if self.status == 'completed':
             self.habit.increment_streak()
+            self.habit.increment_completion()
     
     def __str__(self):
         local_time = self.completed_on_local

@@ -23,8 +23,9 @@ class HabitDetailSchema(Schema):
     created: datetime
     modified: datetime
     progress: dict
+    capybara_stack: dict
 
-    
+    # progress { completed, required }
     @staticmethod
     def resolve_progress(obj):
         start, end = obj.current_period_range()
@@ -37,3 +38,8 @@ class HabitDetailSchema(Schema):
             "completed": completed,
             "required": obj.frequency
         }
+    
+    # capybara_stack { small, medium, large }
+    @staticmethod
+    def resolve_capybara_stack(obj):
+        return obj.capybara_stack
