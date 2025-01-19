@@ -32,12 +32,24 @@ DEBUG = (os.getenv('DJANGO_DEBUG') == 1)
 
 ALLOWED_HOSTS = ["capy-habit-server-production.up.railway.app", "localhost", "127.0.0.1", ".railway.app"]
 
+
+# Handles CORS
+CORS_ALLOWED_ORIGINS = ["http://localhost:8000", "https://localhost:8000"]
+
+ENV_CORS_ALLOWED_ORIGINS = os.getenv("CORS_ALLOWED_ORIGINS")
+if ENV_CORS_ALLOWED_ORIGINS:
+    for origin in ENV_CORS_ALLOWED_ORIGINS.split(","):
+        CORS_ALLOWED_ORIGINS.append(f"{origin}".strip().lower())
+        
+CORS_ALLOW_CREDENTIALS = True
+
 CSRF_TRUSTED_ORIGINS = [
     "http://*.railway.app",
-    "https://*.railway.app"
+    "https://*.railway.app",
+    
 ]
-# Application definition
 
+# Application definition
 INSTALLED_APPS = [
     'django.contrib.admin',
     'django.contrib.auth',
@@ -58,12 +70,12 @@ INSTALLED_APPS = [
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
+    'corsheaders.middleware.CorsMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
-    'corsheaders.middleware.CorsMiddleware'
 ]
 
 ROOT_URLCONF = 'capy_backend.urls'
@@ -145,14 +157,6 @@ STATIC_URL = 'static/'
 # https://docs.djangoproject.com/en/5.1/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
-
-# Handles CORS issues
-CORS_ALLOWED_ORIGINS = [
-    "http://127.0.0.1:3000",
-    "http://localhost:3000",
-    "https://capy-habit.up.railway.app:8080"
-]
-CORS_ALLOW_CREDENTIALS = True
 
 FRONTEND_URL = "http://localhost:3000"
 

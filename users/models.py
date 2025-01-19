@@ -1,6 +1,8 @@
 from django.db import models
 from django.contrib.auth.models import AbstractUser
 
+gacha_cost = 50
+
 class CustomUser(AbstractUser):
     # Extention of the default user model
     email = models.EmailField(unique=True)
@@ -48,3 +50,7 @@ class CustomUser(AbstractUser):
     
     def get_accessories(self):
         return self.user_accessories.all()
+    
+    def pull(self):
+        if self.points >= gacha_cost:
+            self.points -= gacha_cost

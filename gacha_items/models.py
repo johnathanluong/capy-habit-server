@@ -1,11 +1,11 @@
 from django.db import models
+from django.db.models import F
 from users.models import CustomUser
 
-# Create your models here.
+import random
 
 RARITY = [
             ("common", "Common"),
-            ("uncommon", "Uncommon"),
             ("rare", "Rare"),
             ("epic", "Epic"),
             ("legendary", "Legendary")
@@ -24,6 +24,35 @@ class Accessory(models.Model):
     
     def __str__(self):
         return self.name
+    
+    # Returns (UserAccessory, bool_is_new)
+    @classmethod
+    def gacha_pull(cls, user):
+        user.pull()
+        user.save()
+        
+        rarities = ["common", "rare", "epic", "legendary"]
+        weights = [0.50, 0.25, 0.15, 0.10]
+        
+        selected_rarity = random.choices(rarities, weights=weights, k=1)[0]
+        possible_accessories=cls.objects.filter(rarity=selected_rarity)
+        if not possible_accessories.exists():
+            raise ValueError(f"No accessory exists for this rarity: {selected_rarity}")
+        
+        selected_accessory = random.choice(possible_accessories)
+        
+        user_accessory, created =UserAccessory.objects.get_or_create(
+            user=user,
+            accessory=selected_accessory,
+            defaults={'quantity': 1}
+        )
+        
+        if not created:
+            user_accessory.quantity = F('quantity') + 1
+            user_accessory.save()
+            user_accessory.refresh_from_db()
+            
+        return user_accessory, created
     
 class UserAccessory(models.Model):
     user = models.ForeignKey(CustomUser, on_delete=models.CASCADE, related_name='user_accessories')
