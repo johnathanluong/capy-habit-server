@@ -62,16 +62,16 @@ class UserAccessory(models.Model):
     
     class Meta:
         unique_together = ("user", "accessory")
-        
+    
+    # Use a specified number of accessories
     def use_accessory(self, amount):
-        """Use a specified number of accessories."""
         if amount > (self.quantity - self.number_used):
             raise ValueError("Not enough unused accessories available.")
         self.number_used += amount
         self.save()
 
+    # Stop using a specified number of accessories
     def stop_using_accessory(self, amount):
-        """Stop using a specified number of accessories."""
         if amount > self.number_used:
             raise ValueError("Cannot stop using more accessories than are currently in use.")
         self.number_used -= amount

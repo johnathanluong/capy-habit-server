@@ -1,5 +1,5 @@
 from ninja import Schema
-from typing import Optional
+from typing import Optional, Dict
 from datetime import datetime
 from .models import HabitCompletion
 
@@ -24,6 +24,7 @@ class HabitDetailSchema(Schema):
     modified: datetime
     progress: dict
     capybara_stack: dict
+    accessory: Optional[Dict] = None
 
     # progress { completed, required }
     @staticmethod
@@ -43,3 +44,24 @@ class HabitDetailSchema(Schema):
     @staticmethod
     def resolve_capybara_stack(obj):
         return obj.capybara_stack
+    
+    @staticmethod
+    def resolve_accessory(obj):
+        try:
+            if not obj.accessory:
+                return None
+                
+            return {
+                "id": obj.accessory.id,
+                "name": obj.accessory.name,
+                "description": obj.accessory.description,
+                "image_filename": obj.accessory.image_filename,
+                "rarity": obj.accessory.rarity
+            }
+        except Exception as e:
+            print(f"Debug - Accessory resolution error: {str(e)}")
+            return None
+    
+
+class AccessorizeSchema(Schema):
+    accessory_id: int

@@ -4,6 +4,7 @@ from django.utils import timezone
 from datetime import timedelta, datetime
 from calendar import monthrange
 from django.core.validators import ValidationError
+from gacha_items.models import Accessory
 import pytz
 
 FREQUENCY_CHOICES = [
@@ -45,6 +46,14 @@ class Habit(models.Model):
     modified = models.DateTimeField(
         auto_now=True
     )
+    total_completions = models.PositiveIntegerField(default=0)
+    accessory = models.ForeignKey(
+        'gacha_items.Accessory',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='habits'
+    )
     
     # Frequency settings
     frequency = models.PositiveIntegerField(
@@ -68,7 +77,6 @@ class Habit(models.Model):
         help_text="Current streak of successful completions"
     )
     
-    total_completions = models.PositiveIntegerField(default=0)
     
     @property
     def capybara_stack(self):

@@ -1,14 +1,15 @@
 from ninja import Schema
-from typing import Dict
+from typing import Dict, Union
 
 class AccessoryDetailSchema(Schema):
+    id: int
     name: str
     description: str
     image_filename: str
     rarity: str
     
 class UserAccessoryDetailSchema(Schema):
-    accessory: Dict[str, str]
+    accessory: Dict[str, Union[int, str]]
     quantity: int
     number_used: int
     
@@ -16,6 +17,7 @@ class UserAccessoryDetailSchema(Schema):
     @staticmethod
     def resolve_accessory(obj):
         return {
+            "id": obj.accessory.id,
             "name": obj.accessory.name,
             "description": obj.accessory.description,
             "image_filename": obj.accessory.image_filename,
