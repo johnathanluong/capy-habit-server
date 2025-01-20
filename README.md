@@ -21,45 +21,6 @@ This project was designed to demonstrate:
 * PostgreSQL
 * Railway
 
-## Installation
-
-### Prerequisites
-
-Ensure the following are installed on your machine:
-- [Docker](https://docs.docker.com/get-docker/)
-- [Docker Compose](https://docs.docker.com/compose/install/) (optional but recommended)
-
----
-
-### Setup and Deployment
-
-#### 1. Clone the Repository
-Clone the backend repository to your local machine:
-```
-git clone https://github.com/<your-username>/capy-habits-backend.git
-cd capy-habits-backend
-```
----
-#### 2. Create .env File
-Create .env file in the root to configure environment variables. For example:
-```
-SECRET_KEY=your_django_secret_key
-DEBUG=True
-DATABASE_URL=postgres://user:password@host:port/dbname
-```
----
-#### 3. Build the Docker Image
-Use the Dockerfile to build the backend image:
-```
-docker build -t capy-habits-backend .
-```
----
-#### 4. Run the Docker Container
-Start the container with the following command:
-```
-docker run -p 8000:8000 --env-file .env capy-habits-backend
-```
-
 
 If you encounter any issues or have questions, feel free to open an issue in this repository and let me know!
 
