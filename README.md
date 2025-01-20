@@ -2,7 +2,7 @@
 [![Project Version][version-image]][version-url]
 [![Backend][Backend-image]][Backend-url]
  
-This is the back-end side of Capy Habits, a capybara habit tracker built with Next.js, TypeScript, and TailwindCSS. Users can log habits, track progress, and earn rewards for completing goals. Features include a dynamic capybara stack visualization, streak tracking, and a gacha system for customizing capybaras. 
+This is the back-end of Capy Habits, a capybara habit tracker built with Next.js, TypeScript, and TailwindCSS. Users can log habits, track progress, and earn rewards for completing goals. Features include a dynamic capybara stack visualization, streak tracking, and a gacha system for customizing capybaras. 
 
 ---
 ## Author
